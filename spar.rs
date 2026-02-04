@@ -30,22 +30,35 @@ impl FlagContext {
 #[derive(Debug, Clone)]
 pub struct OwnedFlag {
     name: &'static str,
+    short_form: &'static str,
     value: FlagValue,
 }
 
 impl OwnedFlag {
     fn new(name: &'static str, value: FlagValue) -> Self {
-        Self { name, value }
+        Self {
+            name, short_form: &name[0..=0], value
+        }
+    }
+
+    fn with_short_form(name: &'static str, short_form: &'static str, value: FlagValue) -> Self {
+        Self {
+            name, short_form, value
+        }
     }
 
     fn empty() -> Self {
         Self {
-            name: "", value: FlagValue::Empty,
+            name: "", short_form: "", value: FlagValue::Empty,
         }
     }
 
     pub fn name(&self) -> &str {
         self.name
+    }
+
+    pub fn short_form(&self) -> &str {
+        self.short_form
     }
 
     pub fn value(&self) -> &FlagValue {
@@ -108,7 +121,7 @@ pub fn parse_args(proc_args: &mut dyn Iterator<Item = String>) {
                 }
                 let flag = flag.as_mut().unwrap();
                 let mut flag = flag.borrow_mut();
-                if flag.name != &name {
+                if flag.name != &name && flag.short_form != &name {
                     continue;
                 }
 
@@ -182,6 +195,10 @@ impl Flag {
         self.get().name
     }
 
+    pub fn short_form(&self) -> &str {
+        self.get().short_form
+    }
+
     pub fn value(&self) -> FlagValue {
         self.get().value.clone()
     }
@@ -232,4 +249,51 @@ pub fn flag_double(name: &'static str, default_value: f64) -> Flag {
 /// - "content"
 pub fn flag_string(name: &'static str, default_value: &str) -> Flag {
     new_flag(name, FlagValue::String(default_value.to_string()))
+}
+
+fn new_flag_short(name: &'static str, short_form: &'static str, value: FlagValue) -> Flag {
+    FLAGS.with_borrow_mut(|ctx| {
+        if ctx.position == FLAG_CAP {
+            panic!("exceeded FLAG_CAP={}", FLAG_CAP);
+        }
+        let flag = Rc::new(RefCell::new(OwnedFlag::with_short_form(name, short_form, value)));
+        ctx.push(Rc::clone(&flag));
+        Flag::new(flag)
+    })
+}
+
+/// Create a new boolean flag with short form
+///
+/// This flag works like a toggle, i.e. value = !value
+pub fn flag_bool_short(name: &'static str, short_form: &'static str, default_value: bool) -> Flag {
+    new_flag_short(name, short_form, FlagValue::Bool(default_value))
+}
+
+/// Create a new long flag with short form
+pub fn flag_long_short(name: &'static str, short_form: &'static str, default_value: i64) -> Flag {
+    new_flag_short(name, short_form, FlagValue::Long(default_value))
+}
+
+/// Create a new ulong flag with short form
+pub fn flag_ulong_short(name: &'static str, short_form: &'static str, default_value: u64) -> Flag {
+    new_flag_short(name, short_form, FlagValue::ULong(default_value))
+}
+
+/// Create a new float flag with short form
+pub fn flag_float_short(name: &'static str, short_form: &'static str, default_value: f32) -> Flag {
+    new_flag_short(name, short_form, FlagValue::Float(default_value))
+}
+
+/// Create a new double flag with short form
+pub fn flag_double_short(name: &'static str, short_form: &'static str, default_value: f64) -> Flag {
+    new_flag_short(name, short_form, FlagValue::Double(default_value))
+}
+
+/// Create a new string flag with short form
+///
+/// Accepted input values:
+/// - content
+/// - "content"
+pub fn flag_string_short(name: &'static str, short_form: &'static str, default_value: &str) -> Flag {
+    new_flag_short(name, short_form, FlagValue::String(default_value.to_string()))
 }

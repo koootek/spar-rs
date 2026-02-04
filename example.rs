@@ -16,10 +16,10 @@ fn main() {
     let double_test = spar::flag_double("double", 0.0);
     let string_test = spar::flag_string("string", "");
     spar::parse_args(&mut std::env::args());
-    println!("{} = {}", bool_test.name(), bool_test.value());
-    println!("{} = {}", long_test.name(), long_test.value());
-    println!("{} = {}", ulong_test.name(), ulong_test.value());
-    println!("{} = {}", float_test.name(), float_test.value());
-    println!("{} = {}", double_test.name(), double_test.value());
-    println!("{} = {}", string_test.name(), string_test.value());
+    println!("-{}, --{} = {}", bool_test.short_form(), bool_test.name(), bool_test.value());
+    println!("-{}, --{} = {}", long_test.short_form(), long_test.name(), long_test.value());
+    println!("-{}, --{} = {}", ulong_test.short_form(), ulong_test.name(), ulong_test.value());
+    println!("-{}, --{} = {}", float_test.short_form(), float_test.name(), float_test.value());
+    println!("-{}, --{} = {}", double_test.short_form(), double_test.name(), double_test.value());
+    println!("-{}, --{} = {}", string_test.short_form(), string_test.name(), string_test.value());
 }
