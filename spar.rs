@@ -79,6 +79,33 @@ pub enum FlagValue {
     Empty,
 }
 
+impl FlagValue {
+    fn parse(&mut self, msg: String) {
+        match self {
+            FlagValue::Long(value) => {
+                *value = msg.parse().unwrap();
+            }
+            FlagValue::ULong(value) => {
+                *value = msg.parse().unwrap();
+            }
+            FlagValue::Float(value) => {
+                *value = msg.parse().unwrap();
+            }
+            FlagValue::Double(value) => {
+                *value = msg.parse().unwrap();
+            }
+            FlagValue::String(value) => {
+                if msg.starts_with("\"") {
+                    *value = msg[1..msg.len() - 1].to_string();
+                } else {
+                    *value = msg;
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
+}
+
 impl std::fmt::Display for FlagValue {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
@@ -128,50 +155,29 @@ pub fn parse_args(proc_args: &mut dyn Iterator<Item = String>) {
                     continue;
                 }
 
-                match &mut flag.value {
-                    FlagValue::Bool(value) => {
-                        if !ignore {
-                            *value = !*value;
+                if ignore {
+                    match &flag.value {
+                        FlagValue::Bool(_) => {},
+                        FlagValue::Long(_)
+                            | FlagValue::ULong(_) | FlagValue::Float(_)
+                            | FlagValue::Double(_) | FlagValue::String(_) => {
+                            proc_args.next().unwrap();
                         }
+                        FlagValue::Empty => unreachable!(),
                     }
-                    FlagValue::Long(value) => {
-                        let arg = proc_args.next().unwrap();
-                        if !ignore {
-                            *value = arg.parse().unwrap();
-                        }
-                    }
-                    FlagValue::ULong(value) => {
-                        let arg = proc_args.next().unwrap();
-                        if !ignore {
-                            *value = arg.parse().unwrap();
-                        }
-                    }
-                    FlagValue::Float(value) => {
-                        let arg = proc_args.next().unwrap();
-                        if !ignore {
-                            *value = arg.parse().unwrap();
-                        }
-                    }
-                    FlagValue::Double(value) => {
-                        let arg = proc_args.next().unwrap();
-                        if !ignore {
-                            *value = arg.parse().unwrap();
-                        }
-                    }
-                    FlagValue::String(value) => {
-                        let arg = proc_args.next().unwrap();
-                        if ignore {
-                            continue;
-                        }
-
-                        if arg.starts_with("\"") {
-                            *value = arg[1..arg.len() - 1].to_string();
-                        } else {
-                            *value = arg;
-                        }
-                    }
-                    FlagValue::Empty => unreachable!(),
+                    break;
                 }
+
+                let arg = match &mut flag.value {
+                    FlagValue::Bool(value) => {
+                        *value = !*value;
+                        break;
+                    }
+                    _ => proc_args.next().unwrap(),
+                    FlagValue::Empty => unreachable!(),
+                };
+
+                flag.value.parse(arg);
                 break;
             }
         }
