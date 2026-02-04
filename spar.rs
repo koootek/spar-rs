@@ -80,22 +80,17 @@ pub enum FlagValue {
 }
 
 impl FlagValue {
-    fn parse(&mut self, msg: String) {
+    fn parse(&mut self, msg: String) -> Result<(), SparError> {
         match self {
-            FlagValue::Long(value) => {
-                *value = msg.parse().unwrap();
-            }
-            FlagValue::ULong(value) => {
-                *value = msg.parse().unwrap();
-            }
-            FlagValue::Float(value) => {
-                *value = msg.parse().unwrap();
-            }
-            FlagValue::Double(value) => {
-                *value = msg.parse().unwrap();
-            }
+            FlagValue::Long(value) => *value = msg.parse()?,
+            FlagValue::ULong(value) => *value = msg.parse()?,
+            FlagValue::Float(value) => *value = msg.parse()?,
+            FlagValue::Double(value) => *value = msg.parse()?,
             FlagValue::String(value) => {
                 if msg.starts_with("\"") {
+                    if msg.len() <= 1 {
+                        return Err(SparError::ParseString(msg))
+                    }
                     *value = msg[1..msg.len() - 1].to_string();
                 } else {
                     *value = msg;
@@ -103,6 +98,7 @@ impl FlagValue {
             }
             _ => unreachable!(),
         }
+        Ok(())
     }
 }
 
@@ -120,8 +116,28 @@ impl std::fmt::Display for FlagValue {
     }
 }
 
-pub fn parse_args(proc_args: &mut dyn Iterator<Item = String>) {
-    FLAGS.with_borrow_mut(|ctx| {
+#[derive(Debug)]
+pub enum SparError {
+    ParseInt(std::num::ParseIntError),
+    ParseFloat(std::num::ParseFloatError),
+    ParseString(String),
+    NoMoreArgs,
+}
+
+impl From<std::num::ParseIntError> for SparError {
+    fn from(value: std::num::ParseIntError) -> Self {
+        Self::ParseInt(value)
+    }
+}
+
+impl From<std::num::ParseFloatError> for SparError {
+    fn from(value: std::num::ParseFloatError) -> Self {
+        Self::ParseFloat(value)
+    }
+}
+
+pub fn parse_args(proc_args: &mut dyn Iterator<Item = String>) -> Result<(), SparError> {
+    FLAGS.with_borrow_mut(|ctx| -> Result<(), SparError> {
         while let Some(arg) = proc_args.next() {
             let mut chars = arg.chars().peekable();
             while let Some(ch) = chars.peek() {
@@ -161,7 +177,7 @@ pub fn parse_args(proc_args: &mut dyn Iterator<Item = String>) {
                         FlagValue::Long(_)
                             | FlagValue::ULong(_) | FlagValue::Float(_)
                             | FlagValue::Double(_) | FlagValue::String(_) => {
-                            proc_args.next().unwrap();
+                            proc_args.next().ok_or(SparError::NoMoreArgs)?;
                         }
                         FlagValue::Empty => unreachable!(),
                     }
@@ -173,15 +189,16 @@ pub fn parse_args(proc_args: &mut dyn Iterator<Item = String>) {
                         *value = !*value;
                         break;
                     }
-                    _ => proc_args.next().unwrap(),
+                    _ => proc_args.next().ok_or(SparError::NoMoreArgs)?,
                     FlagValue::Empty => unreachable!(),
                 };
 
-                flag.value.parse(arg);
+                flag.value.parse(arg)?;
                 break;
             }
         }
-    });
+        Ok(())
+    })
 }
 
 pub struct Flag {

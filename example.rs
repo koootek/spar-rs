@@ -15,7 +15,7 @@ fn main() {
     let float_test  = spar::flag_float("float", 0.0);
     let double_test = spar::flag_double("double", 0.0);
     let string_test = spar::flag_string("string", "");
-    spar::parse_args(&mut std::env::args());
+    spar::parse_args(&mut std::env::args()).unwrap();
     println!("-{}, --{} = {}", bool_test.short_form(), bool_test.name(), bool_test.value());
     println!("-{}, --{} = {}", long_test.short_form(), long_test.name(), long_test.value());
     println!("-{}, --{} = {}", ulong_test.short_form(), ulong_test.name(), ulong_test.value());
